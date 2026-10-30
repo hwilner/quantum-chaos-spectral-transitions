@@ -93,6 +93,40 @@ class TestFormFactor(unittest.TestCase):
         self.assertAlmostEqual(k0[0], 500.0, places=6)  # N^2 / N
 
 
+class TestFormFactorEnsemble(unittest.TestCase):
+    """Form factor averaged over realisations.
+
+    The form factor of a single spectrum is dominated by the noise of its
+    own levels, so the dip-ramp-plateau structure is only visible once the
+    statistic is averaged over independent realisations.
+    """
+
+    #: Times at which the form factor is evaluated.
+    TAUS = np.array([0.05, 0.1, 0.2, 0.4, 0.8, 1.2, 2.0])
+
+    def _mean_form_factor(self, spectra):
+        """Average the form factor of the given unfolded spectra."""
+        return np.mean([spectral_form_factor(s, self.TAUS) for s in spectra],
+                       axis=0)
+
+    def test_goe_form_factor_dips_then_plateaus(self):
+        # A random-matrix spectrum repels levels, so the form factor dips at
+        # small tau, ramps back up, and then plateaus.
+        spectra = [unfold_spectrum(sorted_eigenvalues(goe_matrix(200, seed=s)),
+                                   poly_degree=3) for s in range(20)]
+        k = self._mean_form_factor(spectra)
+        self.assertLess(k[0], 0.5 * k[4])
+        self.assertTrue(np.all((k[4:] > 0.6) & (k[4:] < 1.4)))
+
+    def test_poisson_form_factor_shows_no_dip(self):
+        # An integrable spectrum has no level repulsion, so its form factor
+        # stays flat instead of dipping at small tau.
+        spectra = [unfold_spectrum(poisson_spectrum(2000, seed=s),
+                                   poly_degree=3) for s in range(20)]
+        k = self._mean_form_factor(spectra)
+        self.assertGreater(k[0], 0.5 * k[4])
+
+
 class TestWignerSurmise(unittest.TestCase):
     """Reference spacing distribution."""
 

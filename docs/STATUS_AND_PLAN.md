@@ -6,7 +6,7 @@
 - [x] `spectral_chaos` package: correlation matrices, eigen-spectra,
       unfolding, spacing ratios, mean ratio, spectral form factor, Wigner
       surmise, GOE/Poisson synthetic anchors.
-- [x] 41-test suite, all anchors green (Poisson ⟨r⟩ ≈ 0.38629; GOE
+- [x] 43-test suite, all anchors green (Poisson ⟨r⟩ ≈ 0.38629; GOE
       ⟨r⟩ ≈ 0.536; SFF flat vs ramp; Wishart-repulsion pitfall documented).
 - [x] Publication-quality INTRODUCTION and high-school EXTENDED_INTRODUCTION.
 
