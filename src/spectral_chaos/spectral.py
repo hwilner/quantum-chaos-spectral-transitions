@@ -12,6 +12,10 @@ Laplacian):
 * spectral unfolding via the smooth part of the staircase,
 * the spectral form factor  K(tau),
 * reference ensembles and the Wigner surmise.
+
+Every public function validates its inputs and raises ``ValueError`` rather
+than returning a well-formed number that describes a different calculation
+than the one the caller asked for.
 """
 
 from __future__ import annotations
@@ -23,34 +27,79 @@ POISSON_R = 2.0 * np.log(2.0) - 1.0          # 0.38629...
 #: Mean adjacent-gap ratio of the Gaussian Orthogonal Ensemble.
 GOE_R = 0.53590
 
+#: Absolute tolerance used when checking that a matrix is symmetric.
+_SYMMETRY_ATOL = 1e-10
+#: Relative tolerance used when checking that a matrix is symmetric.
+_SYMMETRY_RTOL = 1e-8
+
 
 def correlation_matrix(timeseries: np.ndarray) -> np.ndarray:
     """Pearson correlation matrix of a multivariate time series.
+
+    A channel whose values never change has no defined correlation: dividing
+    by its zero standard deviation would put ``NaN`` in the whole row and
+    column of the result, and the failure would surface much later, in the
+    eigensolver. Such channels are therefore rejected here.
 
     Args:
         timeseries: Array of shape ``(n_timepoints, n_channels)``.
 
     Returns:
         Symmetric correlation matrix of shape ``(n_channels, n_channels)``.
+
+    Raises:
+        ValueError: If the input is not two-dimensional, holds fewer than two
+            time points or one channel, contains non-finite values, or has a
+            channel with zero variance.
     """
     x = np.asarray(timeseries, dtype=float)
     if x.ndim != 2:
         raise ValueError("timeseries must be 2-D")
+    n_timepoints, n_channels = x.shape
+    if n_channels == 0:
+        raise ValueError("timeseries must have at least one channel")
+    if n_timepoints < 2:
+        raise ValueError(
+            "timeseries must have at least two time points to correlate")
+    if not np.all(np.isfinite(x)):
+        raise ValueError("timeseries must not contain NaN or infinite values")
+    constant = np.flatnonzero(np.std(x, axis=0) == 0.0)
+    if constant.size:
+        raise ValueError(
+            "channel(s) {} have zero variance, so their correlation is "
+            "undefined".format(constant.tolist()))
+    # A single channel is perfectly correlated with itself; np.corrcoef
+    # collapses that case to a scalar, so the matrix is rebuilt explicitly.
+    if n_channels == 1:
+        return np.ones((1, 1), dtype=float)
     return np.corrcoef(x, rowvar=False)
 
 
 def sorted_eigenvalues(matrix: np.ndarray) -> np.ndarray:
     """Sorted eigenvalues of a real symmetric matrix.
 
+    ``numpy.linalg.eigvalsh`` reads only the lower triangle of its argument
+    and never reports an asymmetric input, so an asymmetric matrix would
+    silently yield the eigenvalues of a different matrix. Asymmetry is
+    therefore rejected here.
+
     Args:
         matrix: Square symmetric matrix.
 
     Returns:
         Eigenvalues in ascending order.
+
+    Raises:
+        ValueError: If the matrix is not square, is not symmetric within
+            tolerance, or contains non-finite values.
     """
     m = np.asarray(matrix, dtype=float)
     if m.ndim != 2 or m.shape[0] != m.shape[1]:
         raise ValueError("matrix must be square")
+    if not np.all(np.isfinite(m)):
+        raise ValueError("matrix must not contain NaN or infinite values")
+    if not np.allclose(m, m.T, rtol=_SYMMETRY_RTOL, atol=_SYMMETRY_ATOL):
+        raise ValueError("matrix must be symmetric")
     return np.linalg.eigvalsh(m)
 
 
