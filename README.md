@@ -36,7 +36,7 @@ src/spectral_chaos/
 tests/
     test_spectral.py           Statistical anchors against random-matrix ground truth.
     test_input_validation.py   Input-validation contract of every public estimator.
-                              The two files together hold 41 unit tests.
+                              The two files together hold 43 unit tests.
 docs/
     INTRODUCTION.md              Publication-quality motivation and theory.
     EXTENDED_INTRODUCTION.md     High-school-level walkthrough with links.

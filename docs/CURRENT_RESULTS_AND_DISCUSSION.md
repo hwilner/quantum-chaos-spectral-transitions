@@ -2,7 +2,7 @@
 
 ## Synthetic validation (complete)
 
-All 41 unit tests pass. Headline anchors:
+All 43 unit tests pass. Headline anchors:
 
 | System | ⟨r⟩ measured | ⟨r⟩ theory |
 |---|---|---|
@@ -10,6 +10,34 @@ All 41 unit tests pass. Headline anchors:
 | GOE (pooled over realisations) | 0.534 ± 0.02 | ≈ 0.5359 |
 | Spectral form factor, Poisson | flat ≈ 1 | flat |
 | Spectral form factor, GOE | ramp + plateau | ramp + plateau |
+
+### Software verification record (2026-10-30)
+
+What was executed, and what it covers. This is a record about the
+*repository*, not about the brain.
+
+| Item | Command | Outcome |
+|---|---|---|
+| Test suite, NumPy 2.4.6 | `python -m pytest -q` | 43 passed |
+| Test suite, NumPy 1.26.4 | `python -m pytest -q` | 43 passed |
+| Documented test count | `python tools/check_doc_test_count.py` | matches the suite (43) |
+| CI, Python 3.11/3.12 × NumPy 1.x/2.x | GitHub Actions, workflow `Tests` | all jobs succeeded |
+| Clean-checkout install | `pip install .` | imported `spectral_chaos` 0.1.0 |
+
+The synthetic anchors of the table above were re-derived with the code as
+committed and reproduce within the stated tolerances: Poisson ⟨r⟩ =
+0.38778 (table: 0.386 ± 0.02), GOE ⟨r⟩ pooled over 40 realisations =
+0.535899 (table: 0.534 ± 0.02), and the Poisson form factor has median
+0.811816 over τ ∈ [0.2, 3.0] (table: flat ≈ 1). The form-factor row for
+GOE is now anchored by a test that averages the statistic over 20
+realisations: the GOE spectrum dips at small τ and then plateaus, whereas
+the Poisson spectrum does not dip.
+
+**What this record does not cover:** it contains no empirical brain data.
+The HCP cohort has not been downloaded, no null model has been run, no
+task-versus-rest contrast has been computed, and no quantity in the table
+above was measured on a brain scan. The table remains a statement about
+synthetic reference ensembles only.
 
 ## The pitfall that shaped the design
 
