@@ -2,7 +2,7 @@
 
 ## Synthetic validation (complete)
 
-All 16 unit tests pass. Headline anchors:
+All 41 unit tests pass. Headline anchors:
 
 | System | ⟨r⟩ measured | ⟨r⟩ theory |
 |---|---|---|

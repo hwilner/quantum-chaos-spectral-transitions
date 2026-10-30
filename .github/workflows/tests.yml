@@ -1,0 +1,63 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }}, NumPy ${{ matrix.numpy-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+        numpy-version: ["1.x", "2.x"]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # The suite must pass on both supported NumPy majors: the package
+          # supports NumPy 1.x and 2.x, and the estimators differ between
+          # them in the spelling of the trapezoid rule.
+          python -m pip install "numpy~${{ matrix.numpy-version }}" "scipy>=1.10" pytest
+          python -m pip install -e . --no-deps
+
+      - name: Run test suite
+        run: python -m pytest -q
+
+      - name: Check the documented test count
+        run: python tools/check_doc_test_count.py
+
+  install:
+    name: Install from a clean checkout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the package and its dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+
+      - name: Import the installed package
+        run: python -c "import spectral_chaos; print(spectral_chaos.__version__)"

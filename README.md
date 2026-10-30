@@ -34,7 +34,9 @@ src/spectral_chaos/
                  ratios (Poisson 0.386 vs GOE 0.536), spectral form
                  factor, Wigner surmise, Poisson/GOE reference ensembles.
 tests/
-    test_spectral.py  15 unit tests against random-matrix ground truth.
+    test_spectral.py           Statistical anchors against random-matrix ground truth.
+    test_input_validation.py   Input-validation contract of every public estimator.
+                              The two files together hold 41 unit tests.
 docs/
     INTRODUCTION.md              Publication-quality motivation and theory.
     EXTENDED_INTRODUCTION.md     High-school-level walkthrough with links.
@@ -46,9 +48,8 @@ docs/
 ## Quickstart
 
 ```bash
-pip install -r requirements.txt
-export PYTHONPATH=src        # or: pip install -e .
-python -m unittest discover -s tests -v
+pip install -e ".[dev]"       # or: pip install -r requirements.txt
+python -m pytest -q           # or: python -m unittest discover -s tests -v
 ```
 
 ```python

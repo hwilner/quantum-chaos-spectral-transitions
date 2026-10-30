@@ -18,6 +18,11 @@ from spectral_chaos.spectral import (
     wigner_surmise_pdf,
 )
 
+# NumPy renamed ``trapz`` to ``trapezoid`` in 2.0 and removed the old name
+# in the same release, so the spelling that exists depends on the installed
+# major version.  Resolve it once here rather than in every call site.
+_trapezoid = getattr(np, "trapezoid", None) or np.trapz
+
 
 class TestReferenceEnsembles(unittest.TestCase):
     """Spacing statistics on analytic reference ensembles."""
@@ -95,8 +100,8 @@ class TestWignerSurmise(unittest.TestCase):
         s = np.linspace(0, 4, 4001)
         p = wigner_surmise_pdf(s, beta=1)
         ds = s[1] - s[0]
-        self.assertAlmostEqual(float(np.trapezoid(p, s)), 1.0, delta=1e-3)
-        self.assertAlmostEqual(float(np.trapezoid(s * p, s)), 1.0, delta=1e-3)
+        self.assertAlmostEqual(float(_trapezoid(p, s)), 1.0, delta=1e-3)
+        self.assertAlmostEqual(float(_trapezoid(s * p, s)), 1.0, delta=1e-3)
 
     def test_level_repulsion_at_zero(self):
         self.assertEqual(wigner_surmise_pdf(np.array([0.0]))[0], 0.0)
