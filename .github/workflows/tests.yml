@@ -16,8 +16,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
-        numpy-version: ["1.x", "2.x"]
+        # The suite must pass on both supported NumPy majors: the package
+        # supports NumPy 1.x and 2.x, and the spelling of the trapezoid rule
+        # differs between them.  The constraint is spelled out in full for
+        # each row because a short form such as "numpy~1.x" is not a valid
+        # requirement specifier.  The combinations are listed one by one so
+        # that a Python version is never paired with the wrong constraint.
+        include:
+          - python-version: "3.11"
+            numpy-version: "1.x"
+            numpy-spec: "numpy>=1.24,<2"
+          - python-version: "3.11"
+            numpy-version: "2.x"
+            numpy-spec: "numpy>=2"
+          - python-version: "3.12"
+            numpy-version: "1.x"
+            numpy-spec: "numpy>=1.24,<2"
+          - python-version: "3.12"
+            numpy-version: "2.x"
+            numpy-spec: "numpy>=2"
     steps:
       - name: Check out source
         uses: actions/checkout@v5
@@ -30,10 +47,7 @@ jobs:
       - name: Install package and test dependencies
         run: |
           python -m pip install --upgrade pip
-          # The suite must pass on both supported NumPy majors: the package
-          # supports NumPy 1.x and 2.x, and the estimators differ between
-          # them in the spelling of the trapezoid rule.
-          python -m pip install "numpy~${{ matrix.numpy-version }}" "scipy>=1.10" pytest
+          python -m pip install "${{ matrix.numpy-spec }}" "scipy>=1.10" pytest
           python -m pip install -e . --no-deps
 
       - name: Run test suite
