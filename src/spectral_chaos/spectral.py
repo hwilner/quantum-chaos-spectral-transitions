@@ -117,10 +117,16 @@ def unfold_spectrum(eigs: np.ndarray, poly_degree: int = 3) -> np.ndarray:
 
     Returns:
         Unfolded eigenvalues with the same length.
+
+    Raises:
+        ValueError: If the spectrum holds non-finite values or holds fewer
+            than ``poly_degree + 2`` eigenvalues.
     """
     eigs = np.sort(np.asarray(eigs, dtype=float))
     if eigs.size < poly_degree + 2:
         raise ValueError("too few eigenvalues to unfold")
+    if not np.all(np.isfinite(eigs)):
+        raise ValueError("eigs must not contain NaN or infinite values")
     staircase = np.arange(1, eigs.size + 1)
     coeffs = np.polyfit(eigs, staircase, poly_degree)
     return np.polyval(coeffs, eigs)
@@ -133,17 +139,29 @@ def spacing_ratios(eigs: np.ndarray, unfolded: bool = False) -> np.ndarray:
     ``s_i = e_{i+1} - e_i``.  Ratios are unfolding-independent by
     construction and lie in ``[0, 1]``.
 
+    Repeated eigenvalues (a zero gap) are collapsed to a single level before
+    the ratios are formed, so the number of ratios is the number of
+    *distinct* levels minus two, not ``len(eigs) - 2``.
+
     Args:
         eigs: Sorted eigenvalues (1-D).
         unfolded: If True, ``eigs`` are already unfolded (no effect on
             the ratio; kept for API clarity).
 
     Returns:
-        Array of ``len(eigs) - 2`` ratios.
+        Array of one ratio per adjacent pair of positive gaps.
+
+    Raises:
+        ValueError: If the spectrum holds non-finite values or has fewer
+            than two positive gaps.
     """
     eigs = np.sort(np.asarray(eigs, dtype=float))
-    s = np.diff(eigs)
-    s = s[s > 0]
+    if not np.all(np.isfinite(eigs)):
+        raise ValueError("eigs must not contain NaN or infinite values")
+    # Collapse repeated levels so that the gaps paired below are the gaps of
+    # the spectrum with its distinct levels; a zero gap would otherwise be
+    # dropped and would silently re-pair the gaps around it.
+    s = np.diff(np.unique(eigs))
     if s.size < 2:
         raise ValueError("need at least two positive spacings")
     lo = np.minimum(s[:-1], s[1:])
@@ -176,9 +194,21 @@ def spectral_form_factor(eigs: np.ndarray, taus: np.ndarray) -> np.ndarray:
 
     Returns:
         ``K(tau)`` evaluated at each tau.
+
+    Raises:
+        ValueError: If the spectrum is empty or holds non-finite values, or
+            if the times hold non-finite or negative values.
     """
     e = np.asarray(eigs, dtype=float)
     taus = np.asarray(taus, dtype=float)
+    if e.size == 0:
+        raise ValueError("eigs must not be empty")
+    if not np.all(np.isfinite(e)):
+        raise ValueError("eigs must not contain NaN or infinite values")
+    if not np.all(np.isfinite(taus)):
+        raise ValueError("taus must not contain NaN or infinite values")
+    if np.any(taus < 0):
+        raise ValueError("taus must not be negative")
     phases = np.exp(-2j * np.pi * np.outer(taus, e))
     return np.abs(phases.sum(axis=1)) ** 2 / e.size
 

@@ -12,7 +12,11 @@ import numpy as np
 
 from spectral_chaos.spectral import (
     correlation_matrix,
+    mean_spacing_ratio,
     sorted_eigenvalues,
+    spacing_ratios,
+    spectral_form_factor,
+    unfold_spectrum,
 )
 
 
@@ -115,6 +119,76 @@ class TestSortedEigenvaluesValidation(unittest.TestCase):
         self.assertFalse(np.array_equal(c, c.T))
         eigs = sorted_eigenvalues(c)
         self.assertEqual(eigs.size, 30)
+
+
+class TestSpacingRatioValidation(unittest.TestCase):
+    """The ratio estimator must not silently re-pair gaps."""
+
+    def test_non_finite_spectrum_is_rejected(self):
+        # np.sort sends NaN to the end, so the old gap filter dropped it and
+        # paired the gaps around it, returning a healthy-looking answer.
+        with self.assertRaises(ValueError):
+            spacing_ratios(np.array([0.0, 1.0, 2.0, np.nan, 4.0, 5.0]))
+
+    def test_infinite_spectrum_is_rejected(self):
+        with self.assertRaises(ValueError):
+            spacing_ratios(np.array([0.0, 1.0, np.inf]))
+
+    def test_repeated_level_is_collapsed_consistently(self):
+        # The gap of a repeated level is zero.  It must not be dropped while
+        # the surrounding gaps are still paired with each other.
+        eigs = np.array([0.0, 1.0, 2.0, 2.0, 5.0])
+        ratios = spacing_ratios(eigs)
+        distinct = np.diff(np.unique(eigs))
+        expected = np.minimum(distinct[:-1], distinct[1:]) / np.maximum(
+            distinct[:-1], distinct[1:])
+        np.testing.assert_allclose(ratios, expected)
+
+    def test_ratio_count_follows_distinct_levels(self):
+        eigs = np.array([0.0, 1.0, 2.0, 2.0, 3.0])
+        # Four distinct levels give three gaps and therefore two ratios,
+        # not len(eigs) - 2 = 3.
+        self.assertEqual(spacing_ratios(eigs).size, 2)
+
+    def test_too_few_levels_raise(self):
+        with self.assertRaises(ValueError):
+            spacing_ratios(np.array([0.0]))
+
+    def test_mean_ratio_propagates_the_error(self):
+        with self.assertRaises(ValueError):
+            mean_spacing_ratio(np.array([0.0, 1.0, np.nan, 3.0]))
+
+
+class TestUnfoldValidation(unittest.TestCase):
+    """The unfolding must not fit a polynomial to non-finite levels."""
+
+    def test_non_finite_spectrum_is_rejected(self):
+        with self.assertRaises(ValueError):
+            unfold_spectrum(np.array([0.0, 1.0, np.nan, 3.0, 4.0, 5.0]))
+
+    def test_too_few_levels_raise(self):
+        with self.assertRaises(ValueError):
+            unfold_spectrum(np.array([0.1, 0.2]), poly_degree=3)
+
+
+class TestFormFactorValidation(unittest.TestCase):
+    """The form factor must not divide by an empty spectrum."""
+
+    def test_empty_spectrum_is_rejected(self):
+        with self.assertRaises(ValueError):
+            spectral_form_factor(np.array([]), np.array([0.5]))
+
+    def test_non_finite_spectrum_is_rejected(self):
+        with self.assertRaises(ValueError):
+            spectral_form_factor(np.array([0.0, 1.0, np.nan]), np.array([0.5]))
+
+    def test_non_finite_taus_are_rejected(self):
+        with self.assertRaises(ValueError):
+            spectral_form_factor(np.arange(4.0), np.array([0.5, np.nan]))
+
+    def test_negative_taus_are_rejected(self):
+        with self.assertRaises(ValueError):
+            spectral_form_factor(np.arange(4.0), np.array([-0.5]))
 
 
 if __name__ == "__main__":
